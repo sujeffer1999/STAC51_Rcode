@@ -1,0 +1,430 @@
+---
+title: "Assignment 2"
+author: "Hanxiao Du, Jeffery Wei Xuan Su"
+date: "10/12/2020"
+output:
+  pdf_document: default
+  html_document:
+    keep_md: yes
+---
+
+Q1.
+(a)
+```{r}
+set.seed(1004439529)
+pr = c(0.2,0.3,0.3,0.2)
+n=10
+N=100
+rv = rmultinom(n, N, pr)
+rv[rv==0]<-0.5
+tables = list()
+for (i in 1:n)
+{
+  counts = matrix(rv[,i], ncol=2,byrow=TRUE)
+  colnames(counts) = c("A", "B")
+  rownames(counts) = c("1", "2")
+  
+  counts.table = as.table(counts)
+  tables[[i]] = counts.table
+}
+
+odd_ratio = numeric(n)
+for (i in 1:n)
+{
+  odd_ratio[i] = (tables[[i]][1]*tables[[i]][4])/
+    (tables[[i]][2]*tables[[i]][3])
+}
+print(odd_ratio)
+```
+i. $\theta = \frac{Odds1}{Odds2} = \frac{\frac{0.4}{0.6}}{\frac{0.6}{0.4}} = \frac{4}{9}$
+
+ii.
+```{r}
+theta = 4/9
+count = 0
+CI_list = list()
+for (i in 1:n) {
+  table = tables[[i]]
+  SE = sqrt(1/table[1] + 1/table[2]+1/table[3] + 1/table[4])
+  CI_log = c(log(odd_ratio[i]) -1.96*(SE), log(odd_ratio[i]) + 1.96*(SE))
+  CI = exp(CI_log)
+  CI_list[[i]] = CI
+}
+
+for (i in 1:n) {
+  if (CI_list[[i]][1] <= theta && theta<= CI_list[[i]][2]) {
+    count = (count + 1)
+  }
+}
+count
+```
+All 10 intervals contain $\theta$.
+
+iii.
+```{r}
+# Tables
+print(tables)
+# Estimated odd ratios
+print(odd_ratio)
+# C.I.
+print(CI_list)
+```
+
+
+(b)
+i.
+```{r}
+set.seed(1004439529)
+pr = c(0.2,0.3,0.3,0.2)
+n=1000000
+N=100
+rv = rmultinom(n, N, pr)
+rv[rv==0]<-0.5
+tables = list()
+for (i in 1:n)
+{
+  counts = matrix(rv[,i], ncol=2,byrow=TRUE)
+  colnames(counts) = c("A", "B")
+  rownames(counts) = c("1", "2")
+  
+  counts.table = as.table(counts)
+  tables[[i]] = counts.table
+}
+
+odd_ratio = numeric(n)
+for (i in 1:n)
+{
+  odd_ratio[i] = (tables[[i]][1]*tables[[i]][4])/
+    (tables[[i]][2]*tables[[i]][3])
+}
+
+CI_list = list()
+for (i in 1:n) {
+  table = tables[[i]]
+  SE = sqrt(1/table[1] + 1/table[2]+1/table[3] + 1/table[4])
+  CI_log = c(log(odd_ratio[i]) -1.96*(SE), log(odd_ratio[i]) + 1.96*(SE))
+  CI = exp(CI_log)
+  CI_list[[i]] = CI
+}
+
+theta = 4/9
+count = 0
+for (i in 1:n) {
+  if (CI_list[[i]][1] <= theta && CI_list[[i]][2] >= theta) {
+    count = count + 1
+  }
+}
+count/n
+```
+The proportion of the intervals containing $\theta$ is 0.949464.
+
+
+ii.
+We have a true coverage probability (94.9464%) of the C.I. which is slightly lower
+than the targeted coverage probability (95%).
+
+(c)
+```{r}
+set.seed(1004439529)
+pr = c(0.2,0.3,0.3,0.2)
+n=1000000
+N=15
+rv = rmultinom(n, N, pr)
+rv[rv==0]<-0.5
+tables = list()
+for (i in 1:n)
+{
+  counts = matrix(rv[,i], ncol=2,byrow=TRUE)
+  colnames(counts) = c("A", "B")
+  rownames(counts) = c("1", "2")
+  
+  counts.table = as.table(counts)
+  tables[[i]] = counts.table
+}
+
+odd_ratio = numeric(n)
+for (i in 1:n)
+{
+  odd_ratio[i] = (tables[[i]][1]*tables[[i]][4])/
+    (tables[[i]][2]*tables[[i]][3])
+}
+
+CI_list = list()
+for (i in 1:n) {
+  table = tables[[i]]
+  SE = sqrt(1/table[1] + 1/table[2]+1/table[3] + 1/table[4])
+  CI_log = c(log(odd_ratio[i]) -1.96*(SE), log(odd_ratio[i]) + 1.96*(SE))
+  CI = exp(CI_log)
+  CI_list[[i]] = CI
+}
+
+theta = 4/9
+count = 0
+for (i in 1:n) {
+  if (CI_list[[i]][1] <= theta && CI_list[[i]][2] >= theta) {
+    count = count + 1
+  }
+}
+count/n
+```
+The proportion of the intervals containing $\theta$ is 97.2009% which is higher 
+than true coverage probalility of the case with N=100 (94.9464%). Furthermore, 
+it is higher than the targeted coverage probability (95%) as well.
+
+Q2.
+(a)
+$H_0 : \theta = 1$ and $H_a : \theta > 1$
+```{r}
+data = matrix(c(21,2,15,3), nrow=2, byrow=TRUE,
+              dimnames = list(Control = c("Cancer COntrolled", "Cancer Not Controlled"), Treatment=c("Surgery", "Radiation therapy")))
+
+p_value = sum(dhyper(21:23, sum(data[1,]), sum(data[2,]), sum(data[,1])))
+p_value
+
+```
+Conclusion since p-value (0.3808337) is greater than $\alpha$ (0.05), so we failed to reject $H_0$, which implies that there is no strong evidence that surgery is better than radiation therapy.
+
+(b)
+```{r}
+prob =dhyper(0:23, sum(data[1,]), sum(data[2,]), sum(data[,1]))
+pvalue = sum((prob)*(prob<=prob[data[1]+1]))
+pvalue
+
+```
+Conclusion: since p-value (0.6384258) is greater than $\alpha$ (0.05), so we failed to reject $H_0$, which implies that there is no strong evidence that the results are different by using surgery and radiation therapy.
+
+Q3.
+(a)
+```{r}
+votes = matrix(c(154,132,180,126,104,131),
+                ncol=2, byrow = TRUE,
+                dimnames = list(Vote = c("Support", "Oppose", "Do not know"), Collage_Grad = 
+                                  c("Yes", "No")))
+chisq_test <- chisq.test(votes)
+chisq_test$p.value
+```
+Conclusion: since p-value(0.003245752) < $\alpha$ (0.05), thus we reject $H_0$.So they are not independent to each other, the vote proportion is dependent on if the participant is a college graduate or not.
+
+(b)
+```{r}
+x = votes[1,]
+n = c(sum(votes[,1]), sum(votes[,2]))
+result <- prop.test(x, n)
+result$p.value
+```
+Conclusion: since p-value(0.7665154) > $\alpha$ (0.05), thus we do not have enough evidence to reject $H_0$, meaning the proportion of college graduates supporting of offshore drilling equals to the proportion of non-college graduates supporting offshore drilling with strong evidence.
+
+(c)
+The Conclusions in part (a) and (b) do not agree. Since we had the third row which is "Do not know",
+for the two sample test, it assumes that anything other than "Support" is in the other category. However, we have two more categories instead of one.
+
+(d)
+```{r}
+chisq_test$stdres
+```
+Conclusion: Since the standardized residuals of "Oppose" and "Do not know" are greater than 2 in absolute values. Therefore, the results of the vote for "Oppose" and "Do not know" are more associated with if the participant is a college graduate or not.
+
+Q.4
+(a)
+```{r}
+table_generate = function(x)
+{
+  return(matrix(x, nrow = 2, byrow = TRUE, dimnames = list(c("Drug", "Control"),
+                                                    c("Success", "Failiure"))))
+}
+
+odds_ratio = function(matrix)
+{
+  return((matrix[1,1]*matrix[2,2])/
+           (matrix[1,2]*matrix[2,1]))
+}
+
+center_data = list(table_generate(c(11, 25, 10, 27)),
+table_generate(c(16, 4, 22, 10)),
+table_generate(c(14, 5, 7, 12)),
+table_generate(c(2, 14, 1, 16)),
+table_generate(c(6, 11, 0, 12)),
+table_generate(c(1, 10, 0, 10)),
+table_generate(c(1, 4, 1, 8)),
+table_generate(c(4, 2, 6, 1))
+)
+
+adjusted_center_data = list(table_generate(c(11, 25, 10, 27)),
+table_generate(c(16, 4, 22, 10)),
+table_generate(c(14, 5, 7, 12)),
+table_generate(c(2, 14, 1, 16)),
+table_generate(c(6, 11, 0.5, 12)),
+table_generate(c(1, 10, 0.5, 10)),
+table_generate(c(1, 4, 1, 8)),
+table_generate(c(4, 2, 6, 1))
+)
+
+odds_ratio_1 = odds_ratio(adjusted_center_data[[1]])
+odds_ratio_2 = odds_ratio(adjusted_center_data[[2]])
+odds_ratio_5 = odds_ratio(adjusted_center_data[[5]])
+print(odds_ratio_1)
+print(odds_ratio_2)
+print(odds_ratio_5)
+```
+
+(b)
+```{r}
+marginal_table = Reduce("+", center_data)
+marginal_odds_ratio = odds_ratio(marginal_table)
+print(marginal_odds_ratio)
+```
+Without considering different centers, odds of Success for Drug curing an infection is higher then the odds of placebo for curing an infection.
+
+(c)
+Since the success rate is related to the center of the clinical trial.
+Thus, if the independence test is conducted without considering centers,
+then there is a potential chance that we can get Simpson's paradox.
+
+(d)
+```{r}
+n11ks = c()
+means = c()
+vars = c()
+for (i in 1:length(center_data))
+{
+  matrix = center_data[[i]]
+  n11k = matrix[1,1]
+  n11ks[i] = n11k
+  tk = sum(matrix[,])
+  R1k = sum(matrix[1,])
+  C1k = sum(matrix[,1])
+  R2k = sum(matrix[2,])
+  C2k = sum(matrix[,2])
+  print(sprintf("T%d: %d", i, tk))
+  print(sprintf("R1%d: %d", i, R1k))
+  print(sprintf("R2%d: %d", i, R2k))
+  print(sprintf("C1%d: %d", i, C1k))
+  print(sprintf("C2%d: %d", i, C2k))
+  mean_numerator = R1k*C1k
+  print(sprintf("mean numerator %d: %d", i, mean_numerator))
+  mean_denom = tk
+  print(sprintf("mean denominator %d: %d", i, mean_denom))
+  mean = mean_numerator/mean_denom
+  means[i] = mean
+  var_numerator = R1k*R2k*C1k*C2k
+  print(sprintf("var numerator %d: %d", i, var_numerator))
+  var_denom = (tk^2)*(tk-1)
+  print(sprintf("var denominator %d: %d", i, var_denom))
+  var = var_numerator/var_denom
+  vars[i] = var
+}
+CMH = sum(n11ks-means)/sqrt(sum(vars))
+p.value = 2*(1-pnorm(CMH)) # 2-sided
+p.value
+```
+
+(e)
+```{r}
+numerator_fnc = function(matrix, i) {
+  sum = sum(matrix)
+  cat("n11 for center",i, ":", matrix[1], "\n")
+  cat("n22 for center",i, ":", matrix[4], "\n")
+  cat("sum of center",i, ":", sum, "\n")
+  return((matrix[1] * matrix[4])/sum)
+}
+denominator_fnc = function(matrix, i) {
+  sum = sum(matrix)
+  cat("n12 for center",i, ":", matrix[3], "\n")
+  cat("n21 for center",i, ":", matrix[2], "\n")
+  cat("sum of center",i, ":", sum, "\n")
+  return((matrix[2] * matrix[3])/sum)
+}
+
+numerator = 0
+denominator = 0
+for (i in 1:8){
+  numerator_value = numerator_fnc(center_data[[i]], i)
+  numerator = numerator + numerator_value
+  cat("numerator for center", i, ":", numerator_value, "\n")
+  
+  denominator_value = denominator_fnc(center_data[[i]], i)
+  denominator = denominator + denominator_value
+  cat("denominator for center", i, ":", denominator_value, "\n\n")
+}
+cat("\n common odds ratio:", numerator/denominator)
+```
+
+(f)
+```{r}
+center_data_array = array(as.numeric(unlist(center_data)), dim=c(2, 2, 8))
+mantelhaen.test(center_data_array, alternative="two.sided", correct = FALSE)
+```
+
+Q.5
+(a)
+```{r}
+mydata = data.frame(drinks = c(0,0.5,1.5,4,7),
+absent = c(17066, 14464, 788, 126, 37),
+present = c(48, 38, 5, 1, 1) )
+mydata$total = with(mydata, absent + present)
+mydata$proportion = with(mydata, present/total)
+
+mydata.linear = glm(cbind(mydata$present, mydata$absent)~drinks, family=binomial(link="identity"), data=mydata)
+summary(mydata.linear)
+```
+(b)
+i.
+$\hat\pi(x) = 0.002548 + 0.001087x$
+ii.
+Coefficient: When mother's alchol consumption is increased by 1, probability of a baby having sex organ malformation is expected to increase by 0.001087. 
+Intercept: when the mother's alchol consumption is 0 the expected probability of a baby having sex organ malformation is 0.002548.
+iii.
+$\hat\pi(0) = 0.002548 + 0.001087 \times 0 = 0.002548$
+$\hat\pi(7) = 0.002548 + 0.001087 \times 7 = 0.010157$
+iv.
+$\hat{RR} = \frac{\hat\pi(0)}{\hat\pi(7)} = \frac{0.002548}{0.010157} = 0.2508615$
+Interpretation: Babies of mother whose alcohol consumption is 7 during pregnancy having sex organ malformation is 0.2508615 as likely for those babies of mother whose alcohol consumption is 0 during pregnancy.
+(c)
+The SE of $\hat\beta$ is 0.0008324 from the summary.
+$\hat\beta = 0.0010872$
+Thus the Wald C.I. is the following:
+```{r}
+b_hat = 0.0010872
+SE = 0.0008324
+ci = c(b_hat - qnorm(0.1/2, lower.tail = F)*SE, b_hat + qnorm(0.1/2, lower.tail = F)*SE)
+print(ci)
+```
+(d)
+```{r}
+mydata = data.frame(drinks = c(0,0.5,1.5,4,7),
+absent = c(17066, 14464, 788, 126, 37),
+present = c(48, 38, 5, 1, 1) )
+mydata$total = with(mydata, absent + present)
+mydata$proportion = with(mydata, present/total)
+
+mydata.linear = glm(cbind(mydata$present, mydata$absent)~drinks, family=binomial(link="logit"), data=mydata)
+summary(mydata.linear)
+```
+i.
+$\hat{\pi}(x) = \frac{exp(-5.9605 + 0.3166x)}{1+exp(-5.9605 + 0.3166x)}$
+ii.
+Coefficient: When mother's alcohol consumption is increased by 1, the odds of a baby having sex organ malformation is expected to increase by $e^{0.3166}=1.372453$.
+Intercept: when the mother's alcohol consumption is 0 the expected odds of a baby having sex organ malformation is $e^{-5.9605}$.
+iii.
+$\hat\pi(0) = \frac{exp(-5.9605 + 0.3166 \times 0)}{1+exp(-5.9605 + 0.3166 \times 0)} = 0.00257199$
+$\hat\pi(7) = \frac{exp(-5.9605 + 0.3166 \times 7)}{1+exp(-5.9605 + 0.3166 \times 7)} = 0.02310568$
+iv.
+$\hat{RR} = \frac{\hat\pi(0)}{\hat\pi(7)} = \frac{0.00257199}{0.02310568} = 0.1113142$
+Interpretation: Babies of mother whose alcohol consumption is 7 during pregnancy having sex organ malformation is 0.1113142 as likely for those babies of mother whose alcohol consumption is 0 during pregnancy.
+v.
+```{r}
+(0.02310568/(1-0.02310568))/(0.00257199/(1-0.00257199))
+```
+The odds ratio of malformation of alcohol level 7 vs 0 is 9.17241.
+
+(e)
+```{r}
+plot(mydata$drinks, mydata$proportion,
+     ylab = "Proportion of Malformation",
+     xlab = "Level of Alcohol Consumption")
+curve(0.002548 + 0.001087*x, add=T, col = "blue")
+curve(exp(-5.9605 + 0.3166*x)/(1+exp(-5.9605 + 0.3166*x)), add=T, col = "red")
+legend(0, 0.025, legend=c("ML method from (a)", "ML method from (d)"), col=c("blue", "red"), lty=1:1)
+```
+The slopes of the two straight lines are different bacause the link functions are different, the identity link fits with the linear relationship between $\pi(x)$ and x, however, the logit link function fits with the linear relationship between the log of the odd and x.
+
