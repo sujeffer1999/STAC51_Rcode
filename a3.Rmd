@@ -1,0 +1,159 @@
+---
+title: "a3"
+author: "Hanxiao Du, Jeffery Wei Xuan Su"
+date: "11/9/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=50), tidy=TRUE)
+```
+
+
+Q1.
+```{r}
+Year = c(1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995)
+AIDS = c(12, 14, 33, 50, 67, 74, 123, 141, 165, 204, 253, 246, 240, 246, 232)
+aids = data.frame(Year, AIDS)
+```
+(a)
+```{r}
+plot(aids$Year, aids$AIDS,
+     ylab = "AIDS",
+     xlab = "Years")
+```
+Comment: From year 1981 to 1991, it is an exponential increase in the number of new AIDS each year. From year 1991 to 1995, it started to decrease gradually in the number of AIDS each year.
+
+(b)
+```{r}
+aids.trimmed = sweep(aids, 2, c(1980, 0))
+colnames(aids.trimmed) = c("t", "AIDS")
+
+aids.trimmed.log = glm(formula = aids.trimmed$AIDS ~ aids.trimmed$t, 
+                       family = poisson(link="log"))
+summary(aids.trimmed.log)
+```
+
+(c)
+```{r}
+plot(aids.trimmed$t, residuals(aids.trimmed.log, type="pearson"), xlab="t", 
+     ylab="Pearson Residuals") 
+```
+Comment: By the plot above, there is overdispersion, since the value of Pearson's residual is not around 1.
+(d)
+```{r}
+t.tbar = aids.trimmed$t - mean(aids.trimmed$t)
+aids.quad = glm(formula = aids.trimmed$AIDS ~ poly(t.tbar, 2, raw = TRUE), 
+                family=poisson(link = "log"))
+summary(aids.quad)
+```
+(e)
+```{r}
+aids.affine = glm(formula = aids.trimmed$AIDS ~ poly(t.tbar, 1, raw = TRUE), 
+                  family=poisson(link = "log"))
+anova(aids.affine, aids.quad, test="Chisq")
+```
+Let $\alpha = 0.05$, since the p-value = $2.2 \times 10^{-16} < 0.05 = \alpha$, we reject $H_0 : \beta_2=0$, thus we believe that the simpler model (i.e. $log(\mu(t)) = \alpha+\beta_1(t-\bar{t})$) does not fit the data well compare to the complex model (i.e. $log(\mu(t)) = \alpha+\beta_1(t-\bar{t})+\beta_2(t-\bar{t})^2$).
+
+Q2.
+```{r}
+PayYes = c(24,10,5,16,7,47,45, 57,54,59)
+PayNo = c(9,3,4,7,4,12,8,9,10,12)
+District = rep(c("NC", "NE", "NW", "SE", "SW"),2)
+Race = c(rep("Blacks",5), rep("Whites",5))
+merit = data.frame(Race, District, PayYes, PayNo)
+print(merit)
+```
+
+(a)
+```{r}
+total = PayYes+PayNo
+Y = PayYes/total
+merit.fit = glm(Y ~ Race+District, weight=total, family=binomial(link="logit"))
+summary(merit.fit)
+drop1(merit.fit, test="Chisq")
+```
+With $H_0 :$independent. 
+Since the p-value from both test for Race is much smaller then $\alpha = 0.05$, we reject the $H_0$, so the merit pay increase is independent of race. 
+Since the p-value from both test for District, is much bigger then $\alpha = 0.05$, we don't have enough information to reject $H_0$, so the merit pay is confitional on the district.
+
+(b)
+The estimate of the common odds ratio between Merit Pay and Race is $\frac{e^{\alpha+\beta_{W}+\beta_{NE}+\beta_{NW}+\beta_{SE}+\beta_{SW}}}{e^{\alpha+\beta_{NE}+\beta_{NW}+\beta_{SE}+\beta_{SW}}} = e^{\beta_W} = e^{0.79129} = 2.206241$
+```{r}
+# 95% Wald C.I. for common odds ratio
+exp(confint.default(merit.fit))
+# 95% LR C.I. for common odds ratio
+exp(confint(merit.fit))
+```
+The 95% Wald C.I. for the common odds ratio between Merit Pay and Race is (1.2612097, 3.859347) which does not contains 1, so there is a statistically significant relationship between races and the probability of getting a merit pay increase.
+The 95% LR C.I. for the common odds ratio between Merit Pay and Race is (1.2519737 3.844984) which does not contains 1, so there is a statistically significant relationship between races and the probability of getting a merit pay increase.
+
+(c)
+```{r}
+merit.fit1 = glm(cbind(PayYes, PayNo) ~ Race+District, 
+                 family=binomial(link="logit"))
+merit.fit2 = glm(cbind(PayYes, PayNo) ~ Race+District + District:Race, 
+                 family=binomial(link="logit"))
+anova(merit.fit1, merit.fit2, test="Chisq")
+```
+Since the p-value = 0.7227 is greater then $\alpha = 0.05$, so we fail to reject the $H_0$. Therefore homogeneous association is valid.
+
+Q3.
+
+(a)
+```{r}
+MBTI = read.table("MBTI.txt", header = T)
+MBTI$drink_false = MBTI$n - MBTI$drink
+MBTI.logit = glm(cbind(drink, drink_false) ~ EI+SN+TF+JP, 
+                 family = binomial(link= "logit"), data = MBTI)
+summary(MBTI.logit)
+```
+The prediction equation is $\hat{\pi}(x) = \frac{e^{-2.1140-0.5550I-0.4292S+0.6873T+ 0.2022P}}{1+e^{-2.1140-0.5550I-0.4292S+0.6873T+0.2022P}}$
+
+The indicator variables are $I = \mathbb{I}(EI = i)$, $S = \mathbb{I}(SN = s)$,  = $T= \mathbb{I}(TF = t)$ and $P = \mathbb{I}(JP = p)$
+
+(b)
+ENTP personality type has the highest estimated probability, to maximize $\hat{\pi}(x)$, let the indicator variables with negative coefficients be 0 and others be 1.
+
+Q4.
+
+(a)
+```{r}
+p.value = pchisq(MBTI.logit$deviance, df=11, lower.tail = F)
+print(p.value)
+```
+Since p-value = 0.4308605 > 0.05 = $\alpha$, we have no strong evidence to reject $H_0$, thus the model fits the data well.
+I would remove JP since the p-value of JP is the greatest.
+
+(b)
+```{r}
+MBTI.fit1 = glm(cbind(drink, drink_false) ~ 
+                  EI+SN+TF+JP+EI:SN+EI:TF+EI:JP+SN:TF+SN:JP+TF:JP, 
+                family = binomial(link= "logit"), data = MBTI)
+summary(MBTI.fit1)
+MBTI.fit2 = MBTI.logit
+summary(MBTI.fit2)
+MBTI.fit3 =  glm(cbind(drink, drink_false) ~ 1, 
+                 family = binomial(link= "logit"), data = MBTI)
+summary(MBTI.fit3)
+```
+The AIC value for model with four main effects and six interaction terms is 78.582.
+The AIC value for model with only four main effect is 73.99.
+The AIC value for model with no predictors is 85.329.
+
+Base on the AIC model selection criterion, we should the model with the lowest AIC. So model with only four main effect is preferred.
+By using AIC, we can compare models that neither is a special case of the other. 
+
+(c)
+```{r}
+step(glm(cbind(drink, drink_false) ~ 1, 
+         family = binomial(link= "logit"), data = MBTI), 
+     scope=~EI*SN*TF*JP, direction = "forward", test="Chisq")
+```
+Thus the selected model is:
+```{r}
+fit = glm(formula = cbind(drink, drink_false) ~ TF + EI + SN + TF:SN, family = binomial(link = "logit"), data = MBTI)
+summary(fit)
+```
+
